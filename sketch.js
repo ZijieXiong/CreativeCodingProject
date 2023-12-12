@@ -18,7 +18,7 @@ var s;
 var xs = [];
 var yx = [];
 
-var dev = true;
+var dev = false;
 var freq = 'bass';
 
 function probability(p){
@@ -29,13 +29,14 @@ function preload() {
   print("loading");
   song = loadSound("mygo/mygo.flac");
   vocal = loadSound("compressed/vocals.mp3");
-  guitar = loadSound("mygo/other.wav");
+  guitar = loadSound("compressed/other.mp3");
 
   //img = loadImage("bg.jpg");
 }
 
 function setup() {
   print("loading complete");
+  frameRate(24);
   createCanvas(windowWidth, windowHeight);
   angleMode(DEGREES);
   imageMode(CENTER);
@@ -91,8 +92,6 @@ function draw() {
     trebleButton.mousePressed(switchTreble);
   }
 
-
-
   let temp = map(song.currentTime(),0,song.duration(),0,1);
   let bgcolor = lerpColor(color(135,206,250),  color(240, 200, 150), temp);
   background(bgcolor);
@@ -110,9 +109,9 @@ function draw() {
   }
 
   sun.display();
-
   bridge.display();
-  for(var i =0; i< wave.length;i+=100){
+
+  for(var i =0; i< wave.length;i+=200){
     var y = map(wave[i], -0.5,0.5,height/5*3, height);
     var x = map(i, 0, wave.length-1, 0, width);
     vertex(x,y);
@@ -124,7 +123,7 @@ function draw() {
   s.scribbleFilling(xs,ys,5, 10);
 
   var amp = amp_guitar.getLevel()*10;
-  let prob = map(amp, 0.10, 0.25, 5, 80);
+  let prob = map(amp, 0.10, 0.20, 5, 50);
  // print(amp);
   if(song.isPlaying() && probability(prob)){
     var p = new CherryBlossomPetal(random(width),-2);
@@ -134,12 +133,13 @@ function draw() {
   for (var i = 0; i < particles.length; i++) {
     if(!particles[i].edges()){
       //particles[i].vx = map(amp, 0.5, 0.25, 0, particles[i].vXMax)*Math.sign(particles[i].vX);
-      particles[i].vy = map(amp, 0.1, 0.25, 10, particles[i].vYMax);
+      particles[i].vy = map(amp, 0, 0.22, 0, particles[i].vYMax);
       particles[i].display(); 
       particles[i].move();
 
     }else{
-      particles.splice(i,1);
+      let temp = particles.splice(i,1);
+      delete temp[0];
     }
   }
 }
@@ -147,6 +147,7 @@ function draw() {
 function mousePressed(){
   print(particles.length);
   print(amp_guitar.getLevel()*10);
+  print(frameRate());
   //print(frameRate());
   if(!dev){
     playMusic();
@@ -199,9 +200,9 @@ class CherryBlossomPetal {
     this.y = y;
     this.amplitude = 10;
     this.xtrans = 0;
-    this.vXMax = random(3);
+    this.vXMax = random(2);
     this.vx = this.vXMax;
-    this.vYMax = random(10,20);
+    this.vYMax = random(5,10);
     this.vy = this.vYMax;
     this.size = random(10, 20);
     this.color = color(random(200, 255), random(150, 200), random(200, 255));
@@ -312,11 +313,11 @@ class Bridge{
 
   display(){
     stroke(192, 192, 192);
-    fill(192);
     for(var i = 0; i < this.numOfPile; i++){
       let x = map(i,0,this.numOfPile, width/5, width);
       let y = this.pileY;
       s.scribbleRect(x,y,this.pileWidth,this.pileHeight);
+      //rect(x,y,this.pileWidth,this.pileHeight);
       let xs = [x - this.pileWidth/2, x + this.pileWidth/2, x - this.pileWidth/2, x + this.pileWidth/2];
       let ys = [y + this.pileHeight/2, y + this.pileHeight/2, y - this.pileHeight/2, y - this.pileHeight/2];
       s.scribbleFilling(xs,ys,10,10);
