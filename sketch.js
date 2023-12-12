@@ -24,8 +24,8 @@ function preload() {
 
 function setup() {
   print("loading complete");
-  mic = new p5.AudioIn();
-  mic.start();
+  //mic = new p5.AudioIn();
+  //mic.start();
   createCanvas(windowWidth, windowHeight);
   angleMode(DEGREES);
   imageMode(CENTER);
@@ -36,15 +36,15 @@ function setup() {
   fft.setInput(song);
   fft_vocal.setInput(vocal);
   s = new Scribble();
-  fft_mic = new p5.FFT();
-  fft_mic.setInput(mic);
+  //fft_mic = new p5.FFT();
+  //fft_mic.setInput(mic);
   //img.filter(BLUR, 12);
   //noLoop();
 }
 
 function draw() {
-  //background(0);
-  var wave = fft.waveform();
+  background(0,50);
+  var wave = fft_vocal.waveform();
   xs = [];
   ys = [];
   noFill();
@@ -64,12 +64,12 @@ function draw() {
   //image(img,0,0,width+100,height+10);
   pop();*/
 
-  var alpha = map(amp,0,255,100,150);
+  /*var alpha = map(amp,0,255,100,150);
   fill(0,alpha);
   noStroke();
-  rect(width/2,height/2,width,height);
- /* 
-  noFill();
+  rect(width/2,height/2,width,height);*/
+ 
+  /*noFill();
   stroke(255);
   strokeWeight(3);
   for (var t = -1; t <= 1; t += 2) {
@@ -90,8 +90,20 @@ function draw() {
   s.scribbleFilling(xs,ys,20, 60);
   //s.scribbleFilling(xs,ys,40, -60);
   */
+
+  for(var i =0; i< wave.length;i++){
+    var y = map(wave[i], -1,1,height/5*3, height/5*4);
+    var x = map(i, 0, wave.length-1, width/5*2, height/5*3);
+    vertex(x,y);
+    xs.push(x);
+    ys.push(y);
+  }
+  stroke(255);
+  strokeWeight(3);
+  s.scribbleFilling(xs,ys,5, 5);
+
   if(song.isPlaying() && probability(10)){
-    var p = new CherryBlossomPetal(random(width),0);
+    var p = new CherryBlossomPetal(random(width),-2);
     particles.push(p);
   }
 
@@ -157,6 +169,9 @@ class CherryBlossomPetal {
   constructor(x, y) {
     this.x = x;
     this.y = y;
+    this.amplitude = 10;
+    this.xtrans = 0;
+    this.vx = random(1);
     this.size = random(10, 20);
     this.color = color(random(200, 255), random(150, 200), random(200, 255));
   }
@@ -180,8 +195,12 @@ class CherryBlossomPetal {
   }
 
   move() {
-    this.y += random(1, 3); // 控制樱花瓣飘落的速度
-    this.x += random(-1, 1); // 控制樱花瓣左右飘动
+    this.y += random(0, 2); // 控制樱花瓣飘落的速度
+    this.x += this.vx; // 控制樱花瓣左右飘动
+    this.xtrans+=this.vx;
+    if(this.xtrans >= this.amplitude || this.xtrans<=-this.amplitude){
+      this.vx = -this.vx;
+    }
     // 如果樱花瓣离开画布底部，重新回到画布顶部
   }
   edges(){
