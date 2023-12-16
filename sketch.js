@@ -92,7 +92,7 @@ function setup() {
   //noLoop();
 
   //create sun and bridge
-  sun = new Sun(-100,height/2);
+  sun = new Sun(width/2,height/4);
   bridge = new Bridge();
 
   //create filetring canvas
@@ -174,15 +174,22 @@ function draw() {
   let progress = song.currentTime() / song.duration();
 
   //change sun position overtime
-  sun.x = map(progress, 0, 1, 0 - sun.radius - 30, width + sun.radius + 30);
+  /*sun.x = map(progress, 0, 1, 0 - sun.radius - 30, width + sun.radius + 30);
   if(progress >= song.duration()/2){
     sun.y = map(progress, 0.5, 0, height/8, height/7);
   }
   else{
     sun.y = map(progress, 0, 0.5, height/7, height/8);
-  }
-
+  }*/
+  /*if(song.isPlaying()){
+    sun.update();
+  }*/
+  sun.y = map(progress, 0, 1, sun.startY, height/5*4);
+  sun.radius = map(progress,0,1,50,200);
   sun.display();
+
+  fill(135,206,250)  
+  rect(width/2, height/10*9, width, height/5);
 
   //handle clouds movement
   for (var i = 0; i < clouds.length; i++) {
@@ -241,6 +248,9 @@ function draw() {
       }
     }
   }
+
+  //draw sun shadow
+  //drawSunReflection(sun.x,sun.y, progress);
 
   /*
   for(var i =0; i< wave.length;i+=1000){
@@ -382,6 +392,28 @@ function activateMethodAtRandomTime(instance, methodName) {
   }, randomDelay);
 }
 
+function drawSunReflection(sunX, sunY, progress) {
+    
+
+    if(sun.y > height/5*4 - sun.radius){
+      let centerY = map(progress, 0, 1, height/20, height/5); 
+      let scaleY = centerY / sun.radius;
+      push();
+      fill(255,204,0,128);
+      translate(sunX, centerY);
+      scale(1, scaleY);
+      ellipse(0,0, sun.radius * 2, sun.radius * 2);
+      pop();
+    }
+    else{
+      let topY = map(sun.y, sun.startY, height/5*4 - sun.radius, height/10, height/5);
+      let scaleY = topy / sun.radius / 2;
+
+    }
+
+
+}
+
 class CherryBlossomPetal {
   constructor(x, y, yv) {
     this.x = x;
@@ -395,6 +427,7 @@ class CherryBlossomPetal {
     this.size = random(10, 20);
     this.color = color(random(200, 255), random(150, 200), random(200, 255));
     this.rotate = random(-20,20);
+
   }
 
   display() {
@@ -436,6 +469,7 @@ class Sun {
   constructor(x, y) {
     this.x = x;
     this.y = y;
+    this.startY = y;
     this.xs = [];
     this.ys = [];
     this.radius = 50;
@@ -445,6 +479,8 @@ class Sun {
     for(var i = 0; i < this.numRays; i++){
       this.randomRotate.push(random(-10,10));
     }
+    this.gravity = 0.1; // Gravity effect
+    this.velocity = 0;  // Initial velocity
   }
 
   display() {
@@ -481,6 +517,18 @@ class Sun {
       s.scribbleLine(startX, startY, rayX, rayY);
     }
   }
+
+  
+  update() {
+    this.velocity += this.gravity;  // Increase velocity
+    this.y += this.velocity;         // Apply velocity to y position
+
+    // Stop falling when it hits the ground
+    if (this.y > height - this.radius) {
+        this.y = height - this.radius;
+        this.velocity = 0;
+    }
+}
 }
 
 class Bridge{
@@ -590,6 +638,19 @@ class VocalWave{
   move(){
     this.isMoving = true;
   }
+
+  displayShadow(sunX, sunY) {
+    push();
+    fill(0, 0, 0, 50); // Semi-transparent black
+    beginShape();
+    for (let i = 0; i < wave.length; i += 2) {
+        let x = map(i, 0, 1024 - 1, 0, width);
+        let y = map(wave[i], -this.amp, this.amp, height / 5 * 3, height);
+        vertex(x, y + (sunY - this.trans)); // Offset shadow based on sun's position
+    }
+    endShape(CLOSE);
+    pop();
+}
 }
 
 
