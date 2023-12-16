@@ -18,14 +18,20 @@ var bridge;
 var clouds = [];
 var tomori;
 
+var wave;
+var horizon;
+
 var s;
 
 var xs = [];
 var yx = [];
+var waves = [];
 
 var dev = false;
 var freq = 'bass';
 var isShaking = false;
+
+let queue = [];
 
 function probability(p){
   return p>random(100)
@@ -47,7 +53,7 @@ function preload() {
   print("loading");
   song = loadSound("mygo/mygo.flac");
   vocal = loadSound("mygo/vocals.wav");
-  guitar = loadSound("compressed/other.mp3");
+  guitar = loadSound("mygo/other.wav");
   bass = loadSound("mygo/bass.wav");
   drum = loadSound("mygo/drums.wav")
 
@@ -101,6 +107,8 @@ function setup() {
 
   tomori = new Tomori(width/2, height/2, 0.5);
   //noSmooth();
+  triggerInterval = setInterval(createWaves, 1000);
+  horizon = new VocalWave(1);
 }
 
 function draw() {
@@ -134,27 +142,26 @@ function draw() {
     trebleButton.position(250,10);
     trebleButton.mousePressed(switchTreble);
   }
-    fft_drum.analyze();
-    let level = fft_drum.getEnergy('lowMid');
-    print(level);
-    if (level > 100 && !isShaking) {
-      isShaking = true;
-      startShake();
-    }
-  
-    if (isShaking) {
-      let shakeAmplitude = map(level, 100, 150, 0, 2);
-      let dx = random(-shakeAmplitude, shakeAmplitude);
-      let dy = random(-shakeAmplitude, shakeAmplitude);
-      translate(dx, dy);
-    }
-  
+
+  fft_drum.analyze();
+  let level = fft_drum.getEnergy('lowMid');
+  if (level > 100 && !isShaking) {
+    isShaking = true;
+    startShake();
+  }
+
+  if (isShaking) {
+    let shakeAmplitude = map(level, 100, 150, 0, 2);
+    let dx = random(-shakeAmplitude, shakeAmplitude);
+    let dy = random(-shakeAmplitude, shakeAmplitude);
+    translate(dx, dy);
+  }
 
 
   let temp = map(song.currentTime(),0,song.duration(),0,1);
   let bgcolor = lerpColor(color(135,206,250),  color(240, 200, 150), temp);
   background(bgcolor);
-  var wave = fft_vocal.waveform();
+  wave = fft_vocal.waveform();
   xs = [];
   ys = [];
   let progress = song.currentTime() / song.duration();
@@ -189,7 +196,42 @@ function draw() {
   //tomori.display();
   bridge.display();
 
-  for(var i =0; i< wave.length;i+=5){
+  strokeWeight(10);
+  horizon.display();
+
+  strokeWeight(5)
+  for (var i = 0;i<waves.length;i++){
+    if(waves[i].isMoving){
+      waves[i].display();
+      waves[i].trans+=waves[i].v;
+      if(waves[i].trans > height/5){
+        if(!song.isPlaying()){
+          let temp = waves.splice(i,1);
+          delete temp[0];
+        }
+        else{
+          waves[i].trans = 0;
+          waves[i].isMoving = false;
+          if(queue.length == 0){
+            activateMethodAtRandomTime(waves[i], 'move');
+          }
+          queue.push(waves[i]);
+        }
+      }
+    }
+  }
+
+  if (queue.length > 0) {
+    if(queue[0].isMoving){
+      queue.shift();
+      if(queue.length > 0){
+        activateMethodAtRandomTime(queue[0], 'move');
+      }
+    }
+  }
+
+  /*
+  for(var i =0; i< wave.length;i+=1000){
     var y = map(wave[i], -0.3,0.3,height/5*3, height);
     var x = map(i, 0, wave.length-1, 0, width);
     vertex(x,y);
@@ -199,19 +241,26 @@ function draw() {
   stroke(255);
   strokeWeight(3);
   s.scribbleFilling(xs,ys,5, 10);
-
+*/
   var amp = amp_guitar.getLevel()*10;
-  let prob = map(amp, 0.10, 0.20, 5, 50);
+  let prob = map(amp, 0.10, 0.20, 10, 150);
+  if(prob>=100){
+    let vy = map(amp, 0, 0.22, 2, 5);
+    var p = new CherryBlossomPetal(random(width),-2, vy);
+    particles.push(p);
+    prob-=100;
+  }
  // print(amp);
   if(song.isPlaying() && probability(prob)){
-    var p = new CherryBlossomPetal(random(width),-2);
+    let vy = map(amp, 0, 0.22, 2, 5);
+    var p = new CherryBlossomPetal(random(width),-2, vy);
     particles.push(p);
   }
 
   for (var i = 0; i < particles.length; i++) {
     if(!particles[i].edges()){
       //particles[i].vx = map(amp, 0.5, 0.25, 0, particles[i].vXMax)*Math.sign(particles[i].vX);
-      particles[i].vy = map(amp, 0, 0.22, 0.1, particles[i].vYMax);
+      //particles[i].vy = map(amp, 0, 0.22, 1, particles[i].vYMax);
       particles[i].display(); 
       particles[i].move();
 
@@ -240,10 +289,8 @@ function draw() {
 }
 
 function mousePressed(){
-  print(particles.length);
-  print(amp_guitar.getLevel()*10);
-  print(frameRate());
   //print(frameRate());
+  print(waves);
   if(!dev){
     playMusic();
   }
@@ -299,16 +346,33 @@ function startShake() {
   }, 100);
 }
 
+function createWaves(){
+  if(waves.length<4 && song.isPlaying()){
+    let temp = new VocalWave();
+    activateMethodAtRandomTime(temp, 'move');
+    waves.push(temp);
+  }
+}
+
+function activateMethodAtRandomTime(instance, methodName) {
+  // Generate a random delay (e.g., between 1 and 5 seconds)
+  let randomDelay = Math.random() * 1000 + 1000; // 1 to 5 seconds in milliseconds
+
+  setTimeout(() => {
+    instance[methodName]();
+  }, randomDelay);
+}
+
 class CherryBlossomPetal {
-  constructor(x, y) {
+  constructor(x, y, yv) {
     this.x = x;
     this.y = y;
     this.amplitude = 10;
     this.xtrans = 0;
-    this.vXMax = random(2);
+    this.vXMax = random(0.1,0.5);
     this.vx = this.vXMax;
-    this.vYMax = random(10);
-    this.vy = this.vYMax;
+    this.vYMax = random(3, 5);
+    this.vy = yv;
     this.size = random(10, 20);
     this.color = color(random(200, 255), random(150, 200), random(200, 255));
     this.rotate = random(-20,20);
@@ -479,6 +543,36 @@ class Cloud {
     return false;
   }
 }
+
+class VocalWave{
+  constructor(amp = 0.3){
+    this.trans = 0;
+    this.amp = amp;
+    this.v = 1;
+    this.isMoving = false;
+  }
+  display(){
+    push();
+    translate(0,this.trans);
+    beginShape();
+    stroke(255);
+    for(var i =0; i< wave.length;i+=2){
+      var y = map(wave[i], -this.amp,this.amp,height/5*3, height);
+      var x = map(i, 0, 1024-1, 0, width);
+      vertex(x,y);
+      xs.push(x);
+      ys.push(y);
+      curveVertex(x,y);
+    }
+    endShape();
+    //s.scribbleFilling(xs,ys,5, 10);
+    pop()
+  }
+  move(){
+    this.isMoving = true;
+  }
+}
+
 
 class Tomori {
   constructor(x, y, scale) {
