@@ -62,6 +62,7 @@ function preload() {
 }
 
 function setup() {
+  //set up
   print("loading complete");
   frameRate(24);
   createCanvas(windowWidth, windowHeight);
@@ -89,14 +90,18 @@ function setup() {
   s = new Scribble();
   //img.filter(BLUR, 12);
   //noLoop();
+
+  //create sun and bridge
   sun = new Sun(-100,height/2);
   bridge = new Bridge();
 
+  //create filetring canvas
   overlayCanvas = createGraphics(width,height);
   overlayCanvas.clear();
   overlayCanvas.noFill();
   overlayCanvas.stroke(255,50);
 
+  //create clouds
   for (let i = 0; i < 5; i++) {
     let x = random(width);
     let cloudSize = random(30, 80);
@@ -105,13 +110,14 @@ function setup() {
     clouds.push(cloud);
   }
 
-  tomori = new Tomori(width/2, height/2, 0.5);
+  //tomori = new Tomori(width/2, height/2, 0.5);
   //noSmooth();
   triggerInterval = setInterval(createWaves, 1000);
   horizon = new VocalWave(1);
 }
 
 function draw() {
+  //dev mode
   if(dev){
     let playButton = createButton('Play');
     playButton.position(10, 10);
@@ -143,6 +149,7 @@ function draw() {
     trebleButton.mousePressed(switchTreble);
   }
 
+  //shaking effect
   fft_drum.analyze();
   let level = fft_drum.getEnergy('lowMid');
   if (level > 100 && !isShaking) {
@@ -157,7 +164,7 @@ function draw() {
     translate(dx, dy);
   }
 
-
+  //change bg color overtime
   let temp = map(song.currentTime(),0,song.duration(),0,1);
   let bgcolor = lerpColor(color(135,206,250),  color(240, 200, 150), temp);
   background(bgcolor);
@@ -166,6 +173,7 @@ function draw() {
   ys = [];
   let progress = song.currentTime() / song.duration();
 
+  //change sun position overtime
   sun.x = map(progress, 0, 1, 0 - sun.radius - 30, width + sun.radius + 30);
   if(progress >= song.duration()/2){
     sun.y = map(progress, 0.5, 0, height/8, height/7);
@@ -176,6 +184,7 @@ function draw() {
 
   sun.display();
 
+  //handle clouds movement
   for (var i = 0; i < clouds.length; i++) {
     clouds[i].display();
     if(song.isPlaying()){
@@ -194,17 +203,20 @@ function draw() {
   }
 
   //tomori.display();
+  //show bridge
   bridge.display();
 
+  //show horizon
   strokeWeight(10);
   horizon.display();
 
+  //handle waves movement
   strokeWeight(5)
   for (var i = 0;i<waves.length;i++){
     if(waves[i].isMoving){
       waves[i].display();
       waves[i].trans+=waves[i].v;
-      if(waves[i].trans > height/5){
+      if(waves[i].trans > height/5 + 2){
         if(!song.isPlaying()){
           let temp = waves.splice(i,1);
           delete temp[0];
@@ -242,6 +254,8 @@ function draw() {
   strokeWeight(3);
   s.scribbleFilling(xs,ys,5, 10);
 */
+
+//control blossoms
   var amp = amp_guitar.getLevel()*10;
   let prob = map(amp, 0.10, 0.20, 10, 150);
   if(prob>=100){
@@ -270,16 +284,17 @@ function draw() {
     }
   }
 
+  //control lightness
   fft_bass.analyze();
   let bassAmp = fft_bass.getEnergy('bass');
   if(bassAmp < 100){
-    var alpha = map(bassAmp, 100, 0, 30, 50);
+    var alpha = map(bassAmp, 100, 0,90, 100);
   }
   else if(bassAmp > 190){
-    var alpha = 0
+    var alpha = 10
   }
   else{
-    var alpha = map(bassAmp, 180, 120, 10, 30);
+    var alpha = map(bassAmp, 180, 120, 50, 70);
   }
   overlayCanvas.clear();
   overlayCanvas.fill(0,0,0,alpha);
@@ -290,6 +305,7 @@ function draw() {
 
 function mousePressed(){
   //print(frameRate());
+  print(waves);
   print(waves);
   if(!dev){
     playMusic();
@@ -349,8 +365,11 @@ function startShake() {
 function createWaves(){
   if(waves.length<4 && song.isPlaying()){
     let temp = new VocalWave();
-    activateMethodAtRandomTime(temp, 'move');
+    queue.push(temp);
     waves.push(temp);
+    if(queue.length == 1){
+      activateMethodAtRandomTime(queue[0], 'move');
+    }
   }
 }
 
